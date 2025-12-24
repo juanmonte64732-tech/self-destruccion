@@ -8,7 +8,7 @@ local CANCEL_CODE = "99"
 local TOTAL_TIME = 20
 
 local gpu = component.gpu
-local tts = component.speech or nil
+local tts = component.isAvailable("speech") and component.speech or nil
 local redstones = {}
 
 for addr in component.list("redstone") do
@@ -61,13 +61,9 @@ while true do
   if remaining ~= last then
     blink = not blink
     
-    if remaining <= 10 then
-      local pitch = 400 + (remaining * 50)
-      computer.beep(pitch, 0.15)
-      os.sleep(0.05)
-      computer.beep(pitch - 100, 0.15)
-    else
-      computer.beep(1000, 0.08)
+    if tts and remaining <= 10 and not spokenNumbers[remaining] then
+      tts.say(tostring(remaining))
+      spokenNumbers[remaining] = true
     end
     
     last = remaining
