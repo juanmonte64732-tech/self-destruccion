@@ -8,8 +8,38 @@ local CANCEL_CODE = "99"
 local TOTAL_TIME = 20
 
 local gpu = component.gpu
-local tts = component.isAvailable("speech") and component.speech or nil
 local redstones = {}
+
+local function speak(text)
+  local words = {
+    ["auto"] = {{600, 0.1}, {700, 0.1}},
+    ["destruccion"] = {{500, 0.1}, {600, 0.1}, {700, 0.1}, {600, 0.1}},
+    ["activada"] = {{700, 0.1}, {800, 0.1}, {700, 0.1}},
+    ["valla"] = {{600, 0.15}, {700, 0.15}},
+    ["al"] = {{500, 0.08}},
+    ["bunker"] = {{400, 0.15}, {500, 0.15}},
+    ["mas"] = {{600, 0.1}},
+    ["cercano"] = {{500, 0.1}, {600, 0.1}, {700, 0.1}}
+  }
+  
+  for word in text:gmatch("%S+") do
+    local tones = words[word:lower()]
+    if tones then
+      for _, tone in ipairs(tones) do
+        computer.beep(tone[1], tone[2])
+        os.sleep(0.02)
+      end
+      os.sleep(0.1)
+    end
+  end
+end
+
+local function speakNumber(num)
+  local base = 300 + (num * 30)
+  computer.beep(base, 0.15)
+  os.sleep(0.05)
+  computer.beep(base + 100, 0.15)
+end
 
 for addr in component.list("redstone") do
   redstones[addr] = component.proxy(addr)
@@ -40,9 +70,7 @@ end
 
 local w, h = gpu.getResolution()
 
-if tts then
-  tts.say("auto destruccion activada. valla al bunker mas cercano.")
-end
+speak("auto destruccion activada valla al bunker mas cercano")
 
 local start = computer.uptime()
 local last = TOTAL_TIME
@@ -61,8 +89,8 @@ while true do
   if remaining ~= last then
     blink = not blink
     
-    if tts and remaining <= 10 and not spokenNumbers[remaining] then
-      tts.say(tostring(remaining))
+    if remaining <= 10 and not spokenNumbers[remaining] then
+      speakNumber(remaining)
       spokenNumbers[remaining] = true
     end
     
