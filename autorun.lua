@@ -8,7 +8,7 @@ local CANCEL_CODE = "99"
 local TOTAL_TIME = 20
 
 local gpu = component.gpu
-local speech = component.speech
+local speech = component.isAvailable("speech") and component.speech or nil
 local redstones = {}
 
 for addr in component.list("redstone") do
@@ -39,8 +39,10 @@ end
 
 local w, h = gpu.getResolution()
 
-speech.say("self destruct sequence activated. proceed to nearest shelter immediately.")
-os.sleep(3)
+if speech then
+  speech.say("self destruct sequence activated. proceed to nearest shelter immediately.")
+  os.sleep(3)
+end
 
 local start = computer.uptime()
 local last = TOTAL_TIME
@@ -59,11 +61,13 @@ while true do
   if remaining ~= last then
     blink = not blink
     
-    if remaining == 10 then
-      speech.say("ten seconds remaining")
-    elseif remaining < 10 and remaining > 0 and not spokenNumbers[remaining] then
-      speech.say(tostring(remaining))
-      spokenNumbers[remaining] = true
+    if speech then
+      if remaining == 10 then
+        speech.say("ten seconds remaining")
+      elseif remaining < 10 and remaining > 0 and not spokenNumbers[remaining] then
+        speech.say(tostring(remaining))
+        spokenNumbers[remaining] = true
+      end
     end
     
     last = remaining
@@ -95,7 +99,9 @@ while true do
         gpu.setForeground(0x00FF00)
         gpu.fill(1, 1, w, h, " ")
         gpu.set(cx - 10, cy, "DESTRUCTION CANCELED")
-        speech.say("self destruct sequence aborted")
+        if speech then
+          speech.say("self destruct sequence aborted")
+        end
         os.sleep(2)
         setAllRedstone(0)
         return
@@ -110,6 +116,8 @@ gpu.fill(1, 1, w, h, " ")
 local cx = math.floor(w / 2)
 local cy = math.floor(h / 2)
 gpu.set(cx - 4, cy, "KA-BOOM")
-speech.say("detonation")
+if speech then
+  speech.say("detonation")
+end
 setAllRedstone(15)
 os.sleep(5)
