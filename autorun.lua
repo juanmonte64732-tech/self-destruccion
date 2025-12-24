@@ -31,14 +31,18 @@ local function readPassword()
   while true do
     local ev = {event.pull()}
     if ev[1] == "char" then
-      local ch = ev[2]
+      local ch = tostring(ev[2])
       if ch >= "0" and ch <= "9" then
         buffer = buffer .. ch
         gpu.set(17 + #buffer - 1, 1, "*")
       end
     elseif ev[1] == "key_down" then
-      if ev[4] == 28 then
+      local keycode = ev[4]
+      if keycode == 28 then
         return buffer
+      elseif keycode == 14 and #buffer > 0 then
+        buffer = buffer:sub(1, -2)
+        gpu.set(17 + #buffer, 1, " ")
       end
     end
   end
