@@ -53,7 +53,16 @@ while true do
   
   if remaining ~= last then
     blink = not blink
-    computer.beep(1000, 0.08)
+    
+    if remaining <= 10 then
+      local pitch = 400 + (remaining * 50)
+      computer.beep(pitch, 0.15)
+      os.sleep(0.05)
+      computer.beep(pitch - 100, 0.15)
+    else
+      computer.beep(1000, 0.08)
+    end
+    
     last = remaining
   end
   
