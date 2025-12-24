@@ -15,8 +15,8 @@ local speech = nil
 local redstones = {}
 
 local function initializeComponents()
-  if component.isAvailable("speech") then
-    speech = component.speech
+  if component.isAvailable("speech_box") then
+    speech = component.speech_box
     print("[SYSTEM] Speech module detected")
   else
     print("[SYSTEM] Speech module not found")
