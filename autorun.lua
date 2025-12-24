@@ -8,38 +8,8 @@ local CANCEL_CODE = "99"
 local TOTAL_TIME = 20
 
 local gpu = component.gpu
+local speech = component.speech
 local redstones = {}
-
-local function speak(text)
-  local words = {
-    ["auto"] = {{600, 0.1}, {700, 0.1}},
-    ["destruccion"] = {{500, 0.1}, {600, 0.1}, {700, 0.1}, {600, 0.1}},
-    ["activada"] = {{700, 0.1}, {800, 0.1}, {700, 0.1}},
-    ["valla"] = {{600, 0.15}, {700, 0.15}},
-    ["al"] = {{500, 0.08}},
-    ["bunker"] = {{400, 0.15}, {500, 0.15}},
-    ["mas"] = {{600, 0.1}},
-    ["cercano"] = {{500, 0.1}, {600, 0.1}, {700, 0.1}}
-  }
-  
-  for word in text:gmatch("%S+") do
-    local tones = words[word:lower()]
-    if tones then
-      for _, tone in ipairs(tones) do
-        computer.beep(tone[1], tone[2])
-        os.sleep(0.02)
-      end
-      os.sleep(0.1)
-    end
-  end
-end
-
-local function speakNumber(num)
-  local base = 300 + (num * 30)
-  computer.beep(base, 0.15)
-  os.sleep(0.05)
-  computer.beep(base + 100, 0.15)
-end
 
 for addr in component.list("redstone") do
   redstones[addr] = component.proxy(addr)
@@ -62,7 +32,6 @@ if password then
 end
 
 if not password or password ~= ARM_CODE then
-  computer.beep(400, 0.3)
   print("Access Denied")
   os.sleep(1)
   return
@@ -70,7 +39,8 @@ end
 
 local w, h = gpu.getResolution()
 
-speak("auto destruccion activada valla al bunker mas cercano")
+speech.say("self destruct sequence activated. proceed to nearest shelter immediately.")
+os.sleep(3)
 
 local start = computer.uptime()
 local last = TOTAL_TIME
@@ -89,8 +59,10 @@ while true do
   if remaining ~= last then
     blink = not blink
     
-    if remaining <= 10 and not spokenNumbers[remaining] then
-      speakNumber(remaining)
+    if remaining == 10 then
+      speech.say("ten seconds remaining")
+    elseif remaining < 10 and remaining > 0 and not spokenNumbers[remaining] then
+      speech.say(tostring(remaining))
       spokenNumbers[remaining] = true
     end
     
@@ -123,7 +95,7 @@ while true do
         gpu.setForeground(0x00FF00)
         gpu.fill(1, 1, w, h, " ")
         gpu.set(cx - 10, cy, "DESTRUCTION CANCELED")
-        computer.beep(800, 0.5)
+        speech.say("self destruct sequence aborted")
         os.sleep(2)
         setAllRedstone(0)
         return
@@ -138,5 +110,6 @@ gpu.fill(1, 1, w, h, " ")
 local cx = math.floor(w / 2)
 local cy = math.floor(h / 2)
 gpu.set(cx - 4, cy, "KA-BOOM")
+speech.say("detonation")
 setAllRedstone(15)
 os.sleep(5)
