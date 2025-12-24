@@ -1,18 +1,19 @@
+
 local computer = require("computer")
 local component = require("component")
 local event = require("event")
 local term = require("term")
 
-local gpu = component.gpu
-
-local redstones = {}
-for addr in component.list("redstone") do
-  redstones[addr] = component.proxy(addr)
-end
-
 local ARM_CODE = "10"
 local CANCEL_CODE = "99"
 local TOTAL_TIME = 200
+
+local gpu = component.gpu
+local redstones = {}
+
+for addr in component.list("redstone") do
+  redstones[addr] = component.proxy(addr)
+end
 
 local function setAllRedstone(v)
   for _, rs in pairs(redstones) do
@@ -24,8 +25,11 @@ end
 
 term.clear()
 io.write("Enter Password: ")
-if io.read() ~= ARM_CODE then
+local input = io.read()
+if not input or input ~= ARM_CODE then
   computer.beep(400, 0.3)
+  print("Access Denied")
+  os.sleep(1)
   return
 end
 
@@ -38,24 +42,31 @@ local buffer = ""
 while true do
   local elapsed = math.floor(computer.uptime() - start)
   local remaining = TOTAL_TIME - elapsed
-  if remaining <= 0 then break end
-
+  
+  if remaining <= 0 then 
+    break 
+  end
+  
   if remaining ~= last then
     blink = not blink
     computer.beep(1000, 0.08)
     last = remaining
   end
-
+  
   gpu.setBackground(blink and 0xFF0000 or 0x000000)
   gpu.setForeground(0xFFFFFF)
   gpu.fill(1, 1, w, h, " ")
-
-  gpu.set(w//2 - 13, h//2 - 2, "SELF-DESTRUCTION ACTIVATED")
-  gpu.set(w//2 - 7,  h//2,     "TIME LEFT: "..remaining)
-  gpu.set(w//2 - 6,  h//2 + 2, "CANCEL CODE:")
-  gpu.set(w//2 - 3,  h//2 + 3, string.rep("*", #buffer))
-
+  
+  local cx = math.floor(w / 2)
+  local cy = math.floor(h / 2)
+  
+  gpu.set(cx - 13, cy - 2, "SELF-DESTRUCTION ACTIVATED")
+  gpu.set(cx - 7,  cy,     "TIME LEFT: " .. remaining)
+  gpu.set(cx - 6,  cy + 2, "CANCEL CODE:")
+  gpu.set(cx - 3,  cy + 3, string.rep("*", #buffer))
+  
   local ev = {event.pull(0.05)}
+  
   if ev[1] == "char" then
     local ch = ev[2]
     if ch >= "0" and ch <= "9" then
@@ -67,8 +78,9 @@ while true do
         gpu.setBackground(0x000000)
         gpu.setForeground(0x00FF00)
         gpu.fill(1, 1, w, h, " ")
-        gpu.set(w//2 - 10, h//2, "DESTRUCTION CANCELED")
+        gpu.set(cx - 10, cy, "DESTRUCTION CANCELED")
         computer.beep(800, 0.5)
+        os.sleep(2)
         setAllRedstone(0)
         return
       end
@@ -79,6 +91,8 @@ end
 gpu.setBackground(0xFF0000)
 gpu.setForeground(0xFFFFFF)
 gpu.fill(1, 1, w, h, " ")
-gpu.set(w//2 - 4, h//2, "KA-BOOM")
+local cx = math.floor(w / 2)
+local cy = math.floor(h / 2)
+gpu.set(cx - 4, cy, "KA-BOOM")
 setAllRedstone(15)
-
+os.sleep(5)
