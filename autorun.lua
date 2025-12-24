@@ -5,9 +5,10 @@ local term = require("term")
 
 local ARM_CODE = "10"
 local CANCEL_CODE = "99"
-local TOTAL_TIME = 200
+local TOTAL_TIME = 20
 
 local gpu = component.gpu
+local tts = component.speech or nil
 local redstones = {}
 
 for addr in component.list("redstone") do
@@ -38,10 +39,16 @@ if not password or password ~= ARM_CODE then
 end
 
 local w, h = gpu.getResolution()
+
+if tts then
+  tts.say("auto destruccion activada. valla al bunker mas cercano.")
+end
+
 local start = computer.uptime()
 local last = TOTAL_TIME
 local blink = true
 local buffer = ""
+local spokenNumbers = {}
 
 while true do
   local elapsed = math.floor(computer.uptime() - start)
