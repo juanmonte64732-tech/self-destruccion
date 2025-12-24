@@ -22,36 +22,16 @@ local function setAllRedstone(v)
   end
 end
 
-local function readPassword()
-  term.clear()
-  local w, h = gpu.getResolution()
-  gpu.set(1, 1, "Enter Password: ")
-  local buffer = ""
-  
-  while true do
-    local ev = {event.pull()}
-    if ev[1] == "char" then
-      local ch = tostring(ev[2])
-      if ch >= "0" and ch <= "9" then
-        buffer = buffer .. ch
-        gpu.set(17 + #buffer - 1, 1, "*")
-      end
-    elseif ev[1] == "key_down" then
-      local keycode = ev[4]
-      if keycode == 28 then
-        return buffer
-      elseif keycode == 14 and #buffer > 0 then
-        buffer = buffer:sub(1, -2)
-        gpu.set(17 + #buffer, 1, " ")
-      end
-    end
-  end
+term.clear()
+print("Enter Password: ")
+local password = term.read()
+
+if password then
+  password = password:gsub("%s+", "")
 end
 
-local password = readPassword()
-if password ~= ARM_CODE then
+if not password or password ~= ARM_CODE then
   computer.beep(400, 0.3)
-  term.clear()
   print("Access Denied")
   os.sleep(1)
   return
@@ -91,10 +71,10 @@ while true do
   
   local ev = {event.pull(0.05)}
   
-  if ev[1] == "char" then
-    local ch = ev[2]
-    if ch >= "0" and ch <= "9" then
-      buffer = buffer .. ch
+  if ev[1] == "key_down" then
+    local char = ev[3]
+    if char and char >= 48 and char <= 57 then
+      buffer = buffer .. string.char(char)
       if #buffer > #CANCEL_CODE then
         buffer = buffer:sub(-#CANCEL_CODE)
       end
