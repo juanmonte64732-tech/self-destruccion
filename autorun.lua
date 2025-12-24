@@ -1,4 +1,3 @@
-
 local computer = require("computer")
 local component = require("component")
 local event = require("event")
@@ -23,11 +22,32 @@ local function setAllRedstone(v)
   end
 end
 
-term.clear()
-io.write("Enter Password: ")
-local input = io.read()
-if not input or input ~= ARM_CODE then
+local function readPassword()
+  term.clear()
+  local w, h = gpu.getResolution()
+  gpu.set(1, 1, "Enter Password: ")
+  local buffer = ""
+  
+  while true do
+    local ev = {event.pull()}
+    if ev[1] == "char" then
+      local ch = ev[2]
+      if ch >= "0" and ch <= "9" then
+        buffer = buffer .. ch
+        gpu.set(17 + #buffer - 1, 1, "*")
+      end
+    elseif ev[1] == "key_down" then
+      if ev[4] == 28 then
+        return buffer
+      end
+    end
+  end
+end
+
+local password = readPassword()
+if password ~= ARM_CODE then
   computer.beep(400, 0.3)
+  term.clear()
   print("Access Denied")
   os.sleep(1)
   return
