@@ -1,19 +1,28 @@
 local component = require("component")
-local term = require("term")
+local os = require("os")
 
-term.clear()
-
-print("GPU:", component.isAvailable("gpu"))
-print("Speech box:", component.isAvailable("speech_box"))
-print("Redstone:", component.isAvailable("redstone"))
-
-if component.isAvailable("speech_box") then
-  local sb = component.speech_box
-  sb.setVolume(1)
-  sb.setPitch(1)
-  sb.setSpeed(1)
-  sb.speak("diagnostic test successful")
+if not component.isAvailable("speech_box") then
+  error("No speech_box detected")
 end
 
-print("Press any key to exit")
-os.pullEvent("key_down")
+local speech = component.speech_box
+
+speech.say("nine")
+os.sleep(1)
+speech.say("eight")
+os.sleep(1)
+speech.say("seven")
+os.sleep(1)
+speech.say("six")
+os.sleep(1)
+speech.say("five")
+os.sleep(1)
+speech.say("four")
+os.sleep(1)
+speech.say("three")
+os.sleep(1)
+speech.say("two")
+os.sleep(1)
+speech.say("one")
+os.sleep(1)
+speech.say("detonation")
