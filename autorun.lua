@@ -1,11 +1,12 @@
 local component = require("component")
 local os = require("os")
 
-if not component.isAvailable("speech_box") then
-  error("No speech_box detected")
-end
-
 local speech = component.speech_box
+
+speech.setVolume(1.0)
+speech.setRate(1.0)
+speech.setPitch(1.0)
+speech.setLanguage("en_US")
 
 speech.say("nine")
 os.sleep(1)
@@ -24,5 +25,3 @@ os.sleep(1)
 speech.say("two")
 os.sleep(1)
 speech.say("one")
-os.sleep(1)
-speech.say("detonation")
