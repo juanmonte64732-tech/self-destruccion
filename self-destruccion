@@ -1,4 +1,4 @@
--- PANEL DE MISILES - VERSIÓN DEFINITIVA (quita el teclado!!)
+-- MISSILE CONTROL PANEL - AUTOEJECUTABLE (sin teclado nunca más)
 local component = require("component")
 local computer = require("computer")
 local event = require("event")
@@ -7,8 +7,7 @@ local os = require("os")
 
 local gpu = component.gpu
 local screen = component.getPrimary("screen")
-
-if not screen then error("No hay pantalla.") end
+if not screen then error("Sin pantalla") end
 
 gpu.bind(screen.address, true)
 screen.turnOn()
@@ -69,9 +68,9 @@ local function draw()
     local sw, sh = gpu.getResolution()
     
     gpu.setForeground(0xFF0000)
-    gpu.set(math.floor(sw/2 - 11), 3, "MISSILE CONTROL PANEL")
+    gpu.set(math.floor(sw/2 - 11), 3, "MISSILE CONTROL")
     
-    gpu.setForeground(armed and 0x00FF00 or 0xFF0000)
+    gpu.setForeground(armed and 0x00FF00 or 0xFF8888)
     gpu.set(math.floor(sw/2 - 4), sh-3, armed and "ARMED" or "SAFE")
     
     local bw, bh = 22, 6
@@ -79,8 +78,8 @@ local function draw()
     local sx = math.floor((sw - (bw*3 + gap*2))/2) + 1
     local sy = math.floor(sh/2 - bh/2)
     
-    button("ARM",   sx,             sy, bw, bh, "ARM SYSTEM",   armed and 0x00AA00 or 0x444444, armed and 0x00FF00 or 0xFFFFFF)
-    button("LAUNCH",sx + bw + gap,  sy, bw, bh, "LAUNCH",       armed and 0xAA0000 or 0x333333, 0xFFFFFF)
+    button("ARM",   sx,             sy, bw, bh, "ARM SYSTEM",   armed and 0x006600 or 0x444444, armed and 0x00FF00 or 0xFFFFFF)
+    button("LAUNCH",sx + bw + gap,  sy, bw, bh, "LAUNCH",       armed and (math.floor(os.clock()*3)%2==0 and 0xFF0000 or 0xAA0000) or 0x333333, 0xFFFFFF)
     button("ABORT", sx + (bw + gap)*2, sy, bw, bh, "ABORT",      0x660000, 0xFF8888)
 end
 
@@ -88,9 +87,10 @@ local function auth()
     clear()
     local sw, sh = gpu.getResolution()
     gpu.setForeground(0xFF4444)
-    gpu.set(math.floor(sw/2 - 10), math.floor(sh/2 - 2), "INGRESE CODIGO")
+    gpu.set(math.floor(sw/2 - 12), math.floor(sh/2 - 3), "AUTORIZACION REQUERIDA")
+    gpu.set(math.floor(sw/2 - 8), math.floor(sh/2 - 1), "CODIGO:")
     
-    term.setCursor(math.floor(sw/2 - 8), math.floor(sh/2))
+    term.setCursor(math.floor(sw/2 - 8), math.floor(sh/2 + 1))
     local input = term.read(nil, false, {"*"}, "")
     return input:gsub("[\r\n]", "") == LAUNCH_CODE
 end
@@ -100,17 +100,21 @@ local function countdown()
     for i = COUNTDOWN, 0, -1 do
         clear()
         gpu.setForeground(i <= 5 and 0xFF0000 or 0xFFFF00)
-        local txt = i > 0 and ("T - " .. i) or "LANZAMIENTO!!!"
+        local txt = i > 0 and ("T-"..i) or "LANZAMIENTO!"
         gpu.set(math.floor(sw/2 - #txt/2), math.floor(sh/2), txt)
-        computer.beep(800 + i*50, 0.2)
+        computer.beep(700 + i*70, 0.2)
         os.sleep(1)
     end
 end
 
+-- DIBUJA AL INICIO
 draw()
 
+-- BUCLE PRINCIPAL
 while true do
-    local ev, addr, x, y, button, player = event.pullMultiple("touch", "key_down", "interrupted")
+    local ev, addr, x, y = event.pullMultiple("touch", "interrupted")
+    
+    if ev == "interrupted" then break end
     
     if ev == "touch" and addr == screen.address then
         if clicked("ARM", x, y) then
@@ -130,14 +134,12 @@ while true do
             else
                 clear()
                 gpu.setForeground(0xFF0000)
-                gpu.set(math.floor(w/2 - 8), math.floor(h/2), "CODIGO ERRONEO")
+                gpu.set(math.floor(w/2 - 9), math.floor(h/2), "CODIGO ERRONEO")
                 computer.beep(200, 1)
                 os.sleep(2)
             end
             armed = false
             draw()
         end
-    elseif ev == "interrupted" then
-        break
     end
 end
