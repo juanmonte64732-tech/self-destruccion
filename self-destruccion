@@ -1,83 +1,143 @@
-local computer = require("computer")
+-- PANEL DE MISILES - VERSIÓN DEFINITIVA (quita el teclado!!)
 local component = require("component")
+local computer = require("computer")
 local event = require("event")
 local term = require("term")
+local os = require("os")
 
 local gpu = component.gpu
+local screen = component.getPrimary("screen")
 
+if not screen then error("No hay pantalla.") end
+
+gpu.bind(screen.address, true)
+screen.turnOn()
+
+local w, h = gpu.maxResolution()
+gpu.setResolution(math.min(w, 80), math.min(h, 25))
+
+-- CONFIG
+local COUNTDOWN = 10
+local LAUNCH_CODE = "2222"
+
+-- REDSTONE
 local redstones = {}
 for addr in component.list("redstone") do
-  redstones[addr] = component.proxy(addr)
+    table.insert(redstones, component.proxy(addr))
 end
 
-local ARM_CODE = "10"
-local CANCEL_CODE = "99"
-local TOTAL_TIME = 200
-
-local function setAllRedstone(v)
-  for _, rs in pairs(redstones) do
-    for s = 0, 5 do
-      rs.setOutput(s, v)
+local function pulse()
+    if #redstones == 0 then return end
+    for _, rs in ipairs(redstones) do
+        for side = 0, 5 do rs.setOutput(side, 15) end
     end
-  end
+    os.sleep(2)
+    for _, rs in ipairs(redstones) do
+        for side = 0, 5 do rs.setOutput(side, 0) end
+    end
 end
 
-term.clear()
-io.write("Enter Password: ")
-if io.read() ~= ARM_CODE then
-  computer.beep(400, 0.3)
-  return
+-- UI
+local buttons = {}
+local armed = false
+
+local function clear()
+    local sw, sh = gpu.getResolution()
+    gpu.setBackground(0x000000)
+    gpu.setForeground(0xFFFFFF)
+    gpu.fill(1, 1, sw, sh, " ")
 end
 
-local w, h = gpu.getResolution()
-local start = computer.uptime()
-local last = TOTAL_TIME
-local blink = true
-local buffer = ""
+local function button(id, x, y, w, h, text, bg, fg)
+    gpu.setBackground(bg or 0x333333)
+    gpu.setForeground(fg or 0xFFFFFF)
+    gpu.fill(x, y, w, h, " ")
+    gpu.set(x + math.floor((w - #text)/2), y + math.floor(h/2), text)
+    buttons[id] = {x=x, y=y, w=w, h=h}
+end
+
+local function clicked(id, x, y)
+    local b = buttons[id]
+    if not b then return false end
+    return x >= b.x and x <= b.x + b.w - 1 and y >= b.y and y <= b.y + b.h - 1
+end
+
+local function draw()
+    clear()
+    buttons = {}
+    
+    local sw, sh = gpu.getResolution()
+    
+    gpu.setForeground(0xFF0000)
+    gpu.set(math.floor(sw/2 - 11), 3, "MISSILE CONTROL PANEL")
+    
+    gpu.setForeground(armed and 0x00FF00 or 0xFF0000)
+    gpu.set(math.floor(sw/2 - 4), sh-3, armed and "ARMED" or "SAFE")
+    
+    local bw, bh = 22, 6
+    local gap = 8
+    local sx = math.floor((sw - (bw*3 + gap*2))/2) + 1
+    local sy = math.floor(sh/2 - bh/2)
+    
+    button("ARM",   sx,             sy, bw, bh, "ARM SYSTEM",   armed and 0x00AA00 or 0x444444, armed and 0x00FF00 or 0xFFFFFF)
+    button("LAUNCH",sx + bw + gap,  sy, bw, bh, "LAUNCH",       armed and 0xAA0000 or 0x333333, 0xFFFFFF)
+    button("ABORT", sx + (bw + gap)*2, sy, bw, bh, "ABORT",      0x660000, 0xFF8888)
+end
+
+local function auth()
+    clear()
+    local sw, sh = gpu.getResolution()
+    gpu.setForeground(0xFF4444)
+    gpu.set(math.floor(sw/2 - 10), math.floor(sh/2 - 2), "INGRESE CODIGO")
+    
+    term.setCursor(math.floor(sw/2 - 8), math.floor(sh/2))
+    local input = term.read(nil, false, {"*"}, "")
+    return input:gsub("[\r\n]", "") == LAUNCH_CODE
+end
+
+local function countdown()
+    local sw, sh = gpu.getResolution()
+    for i = COUNTDOWN, 0, -1 do
+        clear()
+        gpu.setForeground(i <= 5 and 0xFF0000 or 0xFFFF00)
+        local txt = i > 0 and ("T - " .. i) or "LANZAMIENTO!!!"
+        gpu.set(math.floor(sw/2 - #txt/2), math.floor(sh/2), txt)
+        computer.beep(800 + i*50, 0.2)
+        os.sleep(1)
+    end
+end
+
+draw()
 
 while true do
-  local elapsed = math.floor(computer.uptime() - start)
-  local remaining = TOTAL_TIME - elapsed
-  if remaining <= 0 then break end
-
-  if remaining ~= last then
-    blink = not blink
-    computer.beep(1000, 0.08)
-    last = remaining
-  end
-
-  gpu.setBackground(blink and 0xFF0000 or 0x000000)
-  gpu.setForeground(0xFFFFFF)
-  gpu.fill(1, 1, w, h, " ")
-
-  gpu.set(w//2 - 13, h//2 - 2, "SELF-DESTRUCTION ACTIVATED")
-  gpu.set(w//2 - 7,  h//2,     "TIME LEFT: "..remaining)
-  gpu.set(w//2 - 6,  h//2 + 2, "CANCEL CODE:")
-  gpu.set(w//2 - 3,  h//2 + 3, string.rep("*", #buffer))
-
-  local ev = {event.pull(0.05)}
-  if ev[1] == "char" then
-    local ch = ev[2]
-    if ch >= "0" and ch <= "9" then
-      buffer = buffer .. ch
-      if #buffer > #CANCEL_CODE then
-        buffer = buffer:sub(-#CANCEL_CODE)
-      end
-      if buffer == CANCEL_CODE then
-        gpu.setBackground(0x000000)
-        gpu.setForeground(0x00FF00)
-        gpu.fill(1, 1, w, h, " ")
-        gpu.set(w//2 - 10, h//2, "DESTRUCTION CANCELED")
-        computer.beep(800, 0.5)
-        setAllRedstone(0)
-        return
-      end
+    local ev, addr, x, y, button, player = event.pullMultiple("touch", "key_down", "interrupted")
+    
+    if ev == "touch" and addr == screen.address then
+        if clicked("ARM", x, y) then
+            armed = true
+            computer.beep(1000, 0.3)
+            draw()
+        elseif clicked("ABORT", x, y) then
+            armed = false
+            computer.beep(400, 0.4)
+            draw()
+        elseif armed and clicked("LAUNCH", x, y) then
+            computer.beep(1500, 0.3)
+            if auth() then
+                countdown()
+                pulse()
+                computer.beep(2000, 1)
+            else
+                clear()
+                gpu.setForeground(0xFF0000)
+                gpu.set(math.floor(w/2 - 8), math.floor(h/2), "CODIGO ERRONEO")
+                computer.beep(200, 1)
+                os.sleep(2)
+            end
+            armed = false
+            draw()
+        end
+    elseif ev == "interrupted" then
+        break
     end
-  end
 end
-
-gpu.setBackground(0xFF0000)
-gpu.setForeground(0xFFFFFF)
-gpu.fill(1, 1, w, h, " ")
-gpu.set(w//2 - 4, h//2, "KA-BOOM")
-setAllRedstone(15)
